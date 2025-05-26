@@ -591,13 +591,12 @@ export default function Profile() {
           <Divider sx={{ mb: 3, mt: 0 }} />
           {activeTab === 0 && (
             <Box>
-              <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Experience</Typography>
-              <Divider sx={{ my: 4 }} />
+              <Divider sx={{ my: 2 }} />
               <Box sx={{ mb: 4 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                   <WorkIcon sx={{ color: '#ffd54f', fontSize: 28, mr: 1 }} />
                   <Typography variant="h5" sx={{ fontWeight: 700, flex: 1 }}>Experience</Typography>
-                            <Button 
+                  <Button 
                     variant="text"
                     color="primary"
                     startIcon={<WorkIcon sx={{ color: '#ffd54f' }} />}
@@ -613,53 +612,32 @@ export default function Profile() {
                     }}
                   >
                     Add
-                            </Button>
+                  </Button>
                 </Box>
-                <Stack spacing={3}>
-                  {(profileData.experiences && profileData.experiences.length > 0) ? profileData.experiences.map((exp, idx) => (
-                    <Paper
-                      key={idx}
-                      elevation={3}
-                      sx={{
-                        borderRadius: 3,
-                        p: 3,
-                        bgcolor: '#fffef8',
-                        border: '1px solid #ececec',
-                        transition: 'box-shadow 0.2s',
-                        '&:hover': { boxShadow: '0 4px 24px 0 rgba(255,213,79,0.10)' },
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 1.5,
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                        <WorkIcon sx={{ color: '#ffd54f', fontSize: 32, mr: 2 }} />
-                        <Typography variant="h6" sx={{ fontWeight: 700, color: '#2e2e2e' }}>{exp.title}</Typography>
-                    </Box>
-                      <Typography variant="subtitle2" sx={{ color: '#1976d2', fontWeight: 600 }}>{exp.company}</Typography>
-                      <Typography variant="body2" sx={{ color: '#888', mb: 1 }}>{exp.period}</Typography>
-                      <Typography variant="body2" sx={{ color: '#444', mb: 2 }}>{exp.description}</Typography>
-                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                        <Tooltip title="Edit" arrow>
-                          <Button variant="text" color="primary" onClick={() => handleExperienceEdit(idx)} aria-label="Edit experience">Edit</Button>
-                        </Tooltip>
-                        <Tooltip title="Delete" arrow>
-                          <IconButton color="error" onClick={() => setDeleteDialog({ open: true, type: 'experience', idx })} aria-label="Delete experience"><DeleteIcon /></IconButton>
-                        </Tooltip>
-                    </Box>
-                    </Paper>
-                  )) : (
-                    <Paper elevation={0} sx={{ p: 4, borderRadius: 3, bgcolor: '#f8f9fb', textAlign: 'center', color: '#aaa', border: '1px dashed #e0e0e0' }}>
-                      <Typography variant="body1">No experience added yet. Click <b>Add</b> to showcase your work!</Typography>
-                    </Paper>
-                  )}
-                </Stack>
-                    </Box>
-                    </Box>
+                {(profileData.experiences && profileData.experiences.length > 0) ? (
+                  <Box>
+                    {profileData.experiences.map((exp, idx) => (
+                      <Box key={idx} sx={{ display: 'flex', mb: 3 }}>
+                        <WorkIcon sx={{ color: '#bdbdbd', fontSize: 32, mr: 2, mt: 0.5 }} />
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0 }}>{exp.title}</Typography>
+                          <Typography variant="body2" sx={{ color: '#444', fontWeight: 500 }}>{exp.company}</Typography>
+                          <Typography variant="body2" sx={{ color: '#888', mb: 0.5 }}>{exp.period}</Typography>
+                          <Typography variant="body2" sx={{ color: '#444', mb: 1 }}>{exp.description}</Typography>
+                          <Button size="small" variant="text" color="primary" onClick={() => handleExperienceEdit(idx)} aria-label="Edit experience" sx={{ pl: 0, minWidth: 0 }}>Edit</Button>
+                        </Box>
+                      </Box>
+                    ))}
+                  </Box>
+                ) : (
+                  <Typography variant="body1" sx={{ color: '#aaa', textAlign: 'center', mt: 4 }}>No experience added yet. Click <b>Add</b> to showcase your work!</Typography>
+                )}
+              </Box>
+            </Box>
           )}
           {activeTab === 1 && (
             <Box>
-              <Divider sx={{ my: 4 }} />
+              <Divider sx={{ my: 2 }} />
               <Box sx={{ mb: 4 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                   <SchoolIcon sx={{ color: '#90caf9', fontSize: 28, mr: 1 }} />
@@ -682,57 +660,35 @@ export default function Profile() {
                     Add
                   </Button>
                 </Box>
-                <Stack spacing={3}>
-                  {(profileData.education && profileData.education.length > 0) ? profileData.education.map((edu, idx) => (
-                    <Paper
-                      key={idx}
-                      elevation={3}
-                      sx={{
-                        borderRadius: 3,
-                        p: 3,
-                        bgcolor: '#f8faff',
-                        border: '1px solid #ececec',
-                        transition: 'box-shadow 0.2s',
-                        '&:hover': { boxShadow: '0 4px 24px 0 rgba(33,150,243,0.10)' },
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 1.5,
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                        <SchoolIcon sx={{ color: '#90caf9', fontSize: 32, mr: 2 }} />
-                        <Typography variant="h6" sx={{ fontWeight: 700, color: '#2e2e2e' }}>{edu.degree}</Typography>
-                            </Box>
-                      <Typography variant="subtitle2" sx={{ color: '#1976d2', fontWeight: 600 }}>{edu.school}</Typography>
-                      <Typography variant="body2" sx={{ color: '#888', mb: 1 }}>{edu.period}</Typography>
-                      <Typography variant="body2" sx={{ color: '#444', mb: 2 }}>{edu.description}</Typography>
-                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                        <Tooltip title="Edit" arrow>
-                          <Button variant="text" color="primary" onClick={() => handleAcademicEdit(idx)} aria-label="Edit education">Edit</Button>
-                        </Tooltip>
-                        <Tooltip title="Delete" arrow>
-                          <IconButton color="error" onClick={() => setDeleteDialog({ open: true, type: 'education', idx })} aria-label="Delete education"><DeleteIcon /></IconButton>
-                        </Tooltip>
-                              </Box>
-                    </Paper>
-                  )) : (
-                    <Paper elevation={0} sx={{ p: 4, borderRadius: 3, bgcolor: '#f8f9fb', textAlign: 'center', color: '#aaa', border: '1px dashed #e0e0e0' }}>
-                      <Typography variant="body1">No education added yet. Click <b>Add</b> to showcase your background!</Typography>
-                    </Paper>
-                  )}
-                </Stack>
+                {(profileData.education && profileData.education.length > 0) ? (
+                  <Box>
+                    {profileData.education.map((edu, idx) => (
+                      <Box key={idx} sx={{ display: 'flex', mb: 3 }}>
+                        <SchoolIcon sx={{ color: '#bdbdbd', fontSize: 32, mr: 2, mt: 0.5 }} />
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0 }}>{edu.degree}</Typography>
+                          <Typography variant="body2" sx={{ color: '#444', fontWeight: 500 }}>{edu.school}</Typography>
+                          <Typography variant="body2" sx={{ color: '#888', mb: 0.5 }}>{edu.period}</Typography>
+                          {edu.description && <Typography variant="body2" sx={{ color: '#444', mb: 1 }}>{edu.description}</Typography>}
+                          <Button size="small" variant="text" color="primary" onClick={() => handleAcademicEdit(idx)} aria-label="Edit education" sx={{ pl: 0, minWidth: 0 }}>Edit</Button>
+                        </Box>
+                      </Box>
+                    ))}
+                  </Box>
+                ) : (
+                  <Typography variant="body1" sx={{ color: '#aaa', textAlign: 'center', mt: 4 }}>No education added yet. Click <b>Add</b> to showcase your background!</Typography>
+                )}
               </Box>
-                              </Box>
-                            )}
+            </Box>
+          )}
           {activeTab === 2 && (
             <Box>
-              <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Projects</Typography>
-              <Divider sx={{ my: 4 }} />
+              <Divider sx={{ my: 2 }} />
               <Box sx={{ mb: 4 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                   <FolderIcon sx={{ color: '#b39ddb', fontSize: 28, mr: 1 }} />
                   <Typography variant="h5" sx={{ fontWeight: 700, flex: 1 }}>Projects</Typography>
-                            <Button 
+                  <Button 
                     variant="text"
                     color="primary"
                     startIcon={<FolderIcon sx={{ color: '#b39ddb' }} />}
@@ -748,65 +704,44 @@ export default function Profile() {
                     }}
                   >
                     Add
-                            </Button>
+                  </Button>
                 </Box>
-                <Stack spacing={3}>
-                  {(profileData.projects && profileData.projects.length > 0) ? profileData.projects.map((project, idx) => (
-                    <Paper
-                      key={idx}
-                      elevation={3}
-                      sx={{
-                        borderRadius: 3,
-                        p: 3,
-                        bgcolor: '#fafaff',
-                        border: '1px solid #ececec',
-                        transition: 'box-shadow 0.2s',
-                        '&:hover': { boxShadow: '0 4px 24px 0 rgba(76,110,245,0.10)' },
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 1.5,
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                        <FolderIcon sx={{ color: '#b39ddb', fontSize: 32, mr: 2 }} />
-                        <Typography variant="h6" sx={{ fontWeight: 700, color: '#2e2e2e' }}>{project.title}</Typography>
-                    </Box>
-                      {project.tech && project.tech.length > 0 && (
-                        <Stack direction="row" spacing={1} mb={1} flexWrap="wrap">
-                          {project.tech.map((tech) => (
-                            <Chip key={tech} label={tech} size="small" sx={{ bgcolor: '#ede7f6', color: '#5e35b1', fontWeight: 500, borderRadius: 1, mr: 1, mb: 1 }} />
-                          ))}
-                        </Stack>
-                      )}
-                      <Typography variant="body2" sx={{ color: '#444', mb: 2 }}>{project.description}</Typography>
-                      <Stack direction="row" spacing={3} alignItems="center" sx={{ mb: 2 }}>
-                        {project.liveDemo && (
-                          <Link href={project.liveDemo} target="_blank" sx={{ color: '#1976d2', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <LaunchIcon fontSize="small" /> Live Demo
-                          </Link>
-                        )}
-                        {project.sourceCode && (
-                          <Link href={project.sourceCode} target="_blank" sx={{ color: '#1976d2', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <CodeIcon fontSize="small" /> Source Code
-                          </Link>
-                        )}
-                      </Stack>
-                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                        <Tooltip title="Edit" arrow>
-                          <Button variant="text" color="primary" onClick={() => handleProjectEdit(idx)} aria-label="Edit project">Edit</Button>
-                        </Tooltip>
-                        <Tooltip title="Delete" arrow>
-                          <IconButton color="error" onClick={() => setDeleteDialog({ open: true, type: 'project', idx })} aria-label="Delete project"><DeleteIcon /></IconButton>
-                        </Tooltip>
-                    </Box>
-                    </Paper>
-                  )) : (
-                    <Paper elevation={0} sx={{ p: 4, borderRadius: 3, bgcolor: '#f8f9fb', textAlign: 'center', color: '#aaa', border: '1px dashed #e0e0e0' }}>
-                      <Typography variant="body1">No projects added yet. Click <b>Add</b> to showcase your work!</Typography>
-                    </Paper>
-                  )}
-                </Stack>
-                    </Box>
+                {(profileData.projects && profileData.projects.length > 0) ? (
+                  <Box>
+                    {profileData.projects.map((project, idx) => (
+                      <Box key={idx} sx={{ display: 'flex', mb: 3 }}>
+                        <FolderIcon sx={{ color: '#bdbdbd', fontSize: 32, mr: 2, mt: 0.5 }} />
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0 }}>{project.title}</Typography>
+                          {project.tech && project.tech.length > 0 && (
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 0.5 }}>
+                              {project.tech.map((tech) => (
+                                <Chip key={tech} label={tech} size="small" sx={{ bgcolor: '#ede7f6', color: '#5e35b1', fontWeight: 500, borderRadius: 1 }} />
+                              ))}
+                            </Box>
+                          )}
+                          <Typography variant="body2" sx={{ color: '#444', mb: 0.5 }}>{project.description}</Typography>
+                          <Box sx={{ display: 'flex', gap: 2, mb: 0.5 }}>
+                            {project.liveDemo && (
+                              <Link href={project.liveDemo} target="_blank" sx={{ color: '#1976d2', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <LaunchIcon fontSize="small" /> Live Demo
+                              </Link>
+                            )}
+                            {project.sourceCode && (
+                              <Link href={project.sourceCode} target="_blank" sx={{ color: '#1976d2', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <CodeIcon fontSize="small" /> Source Code
+                              </Link>
+                            )}
+                          </Box>
+                          <Button size="small" variant="text" color="primary" onClick={() => handleProjectEdit(idx)} aria-label="Edit project" sx={{ pl: 0, minWidth: 0 }}>Edit</Button>
+                        </Box>
+                      </Box>
+                    ))}
+                  </Box>
+                ) : (
+                  <Typography variant="body1" sx={{ color: '#aaa', textAlign: 'center', mt: 4 }}>No projects added yet. Click <b>Add</b> to showcase your work!</Typography>
+                )}
+              </Box>
             </Box>
           )}
                 </Box>
