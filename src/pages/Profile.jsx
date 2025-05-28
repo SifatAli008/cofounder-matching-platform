@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Avatar, 
   Box, 
@@ -67,6 +67,7 @@ import LocationOnIcon from '@mui/icons-material/LocationOn';
 import LinearProgress from '@mui/material/LinearProgress';
 import Switch from '@mui/material/Switch';
 import CircularProgress from '@mui/material/CircularProgress';
+import profileService from '../services/profileService';
 
 const MAX_SUMMARY_LENGTH = 300;
 const MAX_SKILLS = 10;
@@ -195,40 +196,16 @@ export default function Profile() {
   const [editingProject, setEditingProject] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [profileData, setProfileData] = useState({
-    fullName: 'Rafayet Hossen',
-    tagLine: 'Full Stack Developer',
-    location: 'New York, NY',
-    email: 'rafayet@example.com',
-    phone: '+1 (555) 123-4567',
-    skills: ['React', 'Node.js', 'JavaScript', 'Python', 'MongoDB'],
-    summary:
-      'Passionate full-stack developer with 3+ years of experience building scalable web applications. Expertise in modern JavaScript frameworks, cloud technologies, and agile development practices. Strong problem-solving skills and a commitment to writing clean, maintainable code.',
-    experiences: [
-      {
-        title: 'Senior Software Engineer',
-        company: 'Tech Corp',
-        period: '2020 - Present',
-        description: 'Led development of microservices architecture and implemented CI/CD pipelines.'
-      },
-      {
-        title: 'Software Engineer',
-        company: 'Startup Inc',
-        period: '2018 - 2020',
-        description: 'Developed and maintained multiple React applications and REST APIs.'
-      }
-    ],
-    education: [
-      {
-        degree: 'Master of Computer Science',
-        school: 'Stanford University',
-        period: '2016 - 2018'
-      },
-      {
-        degree: 'Bachelor of Computer Science',
-        school: 'UC Berkeley',
-        period: '2012 - 2016'
-      }
-    ]
+    fullName: '',
+    tagLine: '',
+    location: '',
+    email: '',
+    phone: '',
+    skills: [],
+    summary: '',
+    experiences: [],
+    education: [],
+    projects: []
   });
   const [summarySaved, setSummarySaved] = useState(false);
   const [showSkillFab, setShowSkillFab] = useState(false);
@@ -264,9 +241,59 @@ export default function Profile() {
     website: 'https://rafayet.com'
   });
   const [deleteDialog, setDeleteDialog] = useState({ open: false, type: '', idx: null });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [contactPublic, setContactPublic] = useState(true);
+  const [missingTechProfile, setMissingTechProfile] = useState(false);
+  const [missingBio, setMissingBio] = useState(false);
+
+  // Fetch profile data on component mount and after saves
+  const fetchProfileData = async () => {
+    try {
+      setLoading(true);
+      setMissingTechProfile(false);
+      setMissingBio(false);
+      const [basicInfo, techProfileRes, bioRes] = await Promise.allSettled([
+        profileService.getBasicInfo(),
+        profileService.getTechProfile(),
+        profileService.getBio()
+      ]);
+
+      let techProfile = [];
+      if (techProfileRes.status === 'fulfilled') {
+        techProfile = techProfileRes.value.data.techProfile?.skills || [];
+      } else if (techProfileRes.reason?.response?.status === 404) {
+        setMissingTechProfile(true);
+      }
+
+      let summary = '';
+      if (bioRes.status === 'fulfilled') {
+        summary = bioRes.value.data.bio?.shortBio || '';
+      } else if (bioRes.reason?.response?.status === 404) {
+        setMissingBio(true);
+      }
+
+      setProfileData(prev => ({
+        ...prev,
+        fullName: basicInfo.status === 'fulfilled' ? basicInfo.value.data.data.fullName || '' : '',
+        tagLine: basicInfo.status === 'fulfilled' ? basicInfo.value.data.data.tagLine || '' : '',
+        location: basicInfo.status === 'fulfilled' ? basicInfo.value.data.data.location || '' : '',
+        email: basicInfo.status === 'fulfilled' ? basicInfo.value.data.data.email || '' : '',
+        phone: basicInfo.status === 'fulfilled' ? basicInfo.value.data.data.phone || '' : '',
+        skills: techProfile,
+        summary: summary
+      }));
+    } catch (error) {
+      console.error('Error fetching profile data:', error);
+      toast.error('Failed to load profile data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProfileData();
+  }, []);
 
   const handleSkillInputChange = (e) => {
     setSkillInput(e.target.value);
@@ -326,36 +353,52 @@ export default function Profile() {
     setSnackbar({ ...snackbar, open: false });
   };
 
-  const handleProfileSave = (formData) => {
-    setProfileData(prev => ({ ...prev, ...formData }));
-    setOpenEditProfile(false);
-    setSnackbar({ open: true, message: 'Profile updated successfully', severity: 'success' });
+  const handleProfileSave = async (formData) => {
+    try {
+      await profileService.updateBasicInfo(formData);
+      await fetchProfileData();
+      setOpenEditProfile(false);
+      toast.success('Profile updated successfully');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('Failed to update profile');
+    }
   };
 
-  const handleAcademicSave = (formData) => {
-    setProfileData(prev => {
-      const education = [...prev.education];
-      if (editingAcademic !== null) education[editingAcademic] = formData;
-      else education.push(formData);
-      return { ...prev, education };
-    });
-    setOpenAcademicForm(false);
-    setSnackbar({ open: true, message: `Academic record ${editingAcademic !== null ? 'updated' : 'added'} successfully`, severity: 'success' });
+  const handleAcademicSave = async (formData) => {
+    try {
+      if (editingAcademic !== null) {
+        await profileService.updateAcademic(editingAcademic, formData);
+      } else {
+        await profileService.addAcademic(formData);
+      }
+      await fetchProfileData();
+      setOpenAcademicForm(false);
+      toast.success(`Academic record ${editingAcademic !== null ? 'updated' : 'added'} successfully`);
+    } catch (error) {
+      console.error('Error saving academic record:', error);
+      toast.error('Failed to save academic record');
+    }
   };
 
   const handleAcademicAdd = () => { setEditingAcademic(null); setOpenAcademicForm(true); };
   const handleAcademicEdit = (idx) => { setEditingAcademic(idx); setOpenAcademicForm(true); };
   const handleAcademicClose = () => setOpenAcademicForm(false);
 
-  const handleExperienceSave = (formData) => {
-    setProfileData(prev => {
-      const experiences = [...prev.experiences];
-      if (editingExperience !== null) experiences[editingExperience] = formData;
-      else experiences.push(formData);
-      return { ...prev, experiences };
-    });
-    setOpenExperienceForm(false);
-    setSnackbar({ open: true, message: `Experience ${editingExperience !== null ? 'updated' : 'added'} successfully`, severity: 'success' });
+  const handleExperienceSave = async (formData) => {
+    try {
+      if (editingExperience !== null) {
+        await profileService.updateExperience(editingExperience, formData);
+      } else {
+        await profileService.addExperience(formData);
+      }
+      await fetchProfileData();
+      setOpenExperienceForm(false);
+      toast.success(`Experience ${editingExperience !== null ? 'updated' : 'added'} successfully`);
+    } catch (error) {
+      console.error('Error saving experience:', error);
+      toast.error('Failed to save experience');
+    }
   };
 
   const handleExperienceAdd = () => { setEditingExperience(null); setOpenExperienceForm(true); };
@@ -409,21 +452,34 @@ export default function Profile() {
   };
 
   // Delete handlers
-  const handleDelete = () => {
-    setLoading(true);
-    setTimeout(() => {
+  const handleDelete = async () => {
+    try {
+      setLoading(true);
+      if (deleteDialog.type === 'education') {
+        await profileService.deleteAcademic(deleteDialog.idx);
+      } else if (deleteDialog.type === 'experience') {
+        await profileService.deleteExperience(deleteDialog.idx);
+      }
+      
       setProfileData(prev => {
         const updated = { ...prev };
-        if (deleteDialog.type === 'education') updated.education = prev.education.filter((_, i) => i !== deleteDialog.idx);
-        if (deleteDialog.type === 'experience') updated.experiences = prev.experiences.filter((_, i) => i !== deleteDialog.idx);
-        if (deleteDialog.type === 'project') updated.projects = prev.projects.filter((_, i) => i !== deleteDialog.idx);
+        if (deleteDialog.type === 'education') {
+          updated.education = prev.education.filter((_, i) => i !== deleteDialog.idx);
+        }
+        if (deleteDialog.type === 'experience') {
+          updated.experiences = prev.experiences.filter((_, i) => i !== deleteDialog.idx);
+        }
         return updated;
       });
-      setLoading(false);
+      
       setDeleteDialog({ open: false, type: '', idx: null });
-      setSnackbar({ open: true, message: 'Deleted successfully', severity: 'success' });
-      setLastUpdated(new Date());
-    }, 800);
+      toast.success('Deleted successfully');
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      toast.error('Failed to delete item');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Profile completeness calculation
@@ -446,6 +502,14 @@ export default function Profile() {
   if (!profileData.experiences || profileData.experiences.length === 0) missingTips.push('Add work experience');
   if (!profileData.education || profileData.education.length === 0) missingTips.push('Add education');
 
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ bgcolor: '#fff', minHeight: '100vh', fontFamily: `'Inter', 'Segoe UI', 'Arial', sans-serif` }}>
       <Header />
@@ -456,14 +520,14 @@ export default function Profile() {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <LinearProgress value={completeness} variant="determinate" sx={{ flex: 1, height: 8, borderRadius: 4, bgcolor: '#ececec', '& .MuiLinearProgress-bar': { bgcolor: completeness >= 80 ? '#4caf50' : completeness >= 50 ? '#ff9800' : '#f44336' } }} />
             <Typography variant="body2" sx={{ color: '#888' }}>{completeness}%</Typography>
-              </Box>
+          </Box>
           {completeness < 100 && (
             <Box sx={{ mt: 1 }}>
               <Typography variant="body2" sx={{ color: '#f44336' }}>Tips to complete your profile:</Typography>
               <ul style={{ margin: 0, paddingLeft: 18 }}>
                 {missingTips.map(tip => <li key={tip}><Typography variant="body2" sx={{ color: '#888' }}>{tip}</Typography></li>)}
               </ul>
-                </Box>
+            </Box>
           )}
         </Box>
         {/* Last updated */}
@@ -481,17 +545,17 @@ export default function Profile() {
                 <LocationOnIcon sx={{ color: '#bbb', fontSize: 20 }} />
                 <Typography variant="body2" sx={{ color: '#888' }}>{profileData.location}</Typography>
               </Stack>
-          </Box>
+            </Box>
           </Box>
           {/* LinkedIn-style action buttons */}
           <Stack direction="row" spacing={2} alignItems="center">
             {!isConnected && (
               <Tooltip title="Connect with this user" arrow>
-            <Button
-              variant="contained"
-              color="primary"
+                <Button
+                  variant="contained"
+                  color="primary"
                   onClick={() => { setIsConnected(true); setShowSnackbar(true); }}
-            sx={{
+                  sx={{
                     textTransform: 'none',
                     fontWeight: 500,
                     borderRadius: 2,
@@ -507,7 +571,7 @@ export default function Profile() {
               </Tooltip>
             )}
             <Tooltip title="Edit your profile" arrow>
-                            <Button 
+              <Button 
                 variant="outlined"
                 color="inherit"
                 onClick={() => setOpenEditProfile(true)}
@@ -521,20 +585,20 @@ export default function Profile() {
                   '&:hover': { bgcolor: '#f5f5f5', borderColor: '#bdbdbd' }
                 }}
                 aria-label="Edit profile"
-                              startIcon={<EditIcon />}
-                            >
-                              Edit
-                            </Button>
+                startIcon={<EditIcon />}
+              >
+                Edit
+              </Button>
             </Tooltip>
           </Stack>
-                    </Box>
+        </Box>
 
         {/* Looking For Section */}
         <Box sx={{ mb: 4 }}>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>Looking For</Typography>
           <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#222', mb: 1 }}>{lookingFor}</Typography>
           <Typography variant="body1" sx={{ color: '#666' }}>{whyLooking}</Typography>
-                    </Box>
+        </Box>
 
         {/* Key Skills Section */}
         <Box sx={{ mb: 4 }}>
@@ -550,7 +614,7 @@ export default function Profile() {
               ))
             )}
           </Stack>
-                    </Box>
+        </Box>
 
         {/* Contact Section with public/private toggle */}
         <Box sx={{ mb: 4 }}>
@@ -559,13 +623,13 @@ export default function Profile() {
             <Tooltip title={contactPublic ? 'Contact info is public' : 'Contact info is private'} arrow>
               <Switch checked={contactPublic} onChange={() => setContactPublic(v => !v)} color="primary" inputProps={{ 'aria-label': 'Toggle contact public/private' }} />
             </Tooltip>
-                    </Box>
+          </Box>
           {contactPublic && isConnected && (
             <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap">
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <EmailIcon sx={{ color: '#bbb', fontSize: 20 }} />
                 <Typography variant="body2" sx={{ color: '#888' }}>{profileData.email}</Typography>
-                </Box>
+              </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <PhoneIcon sx={{ color: '#bbb', fontSize: 20 }} />
                 <Typography variant="body2" sx={{ color: '#888' }}>{profileData.phone}</Typography>
@@ -593,27 +657,15 @@ export default function Profile() {
             <Box>
               <Divider sx={{ my: 2 }} />
               <Box sx={{ mb: 4 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <WorkIcon sx={{ color: '#ffd54f', fontSize: 28, mr: 1 }} />
-                  <Typography variant="h5" sx={{ fontWeight: 700, flex: 1 }}>Experience</Typography>
-                  <Button 
-                    variant="text"
-                    color="primary"
-                    startIcon={<WorkIcon sx={{ color: '#ffd54f' }} />}
-                    onClick={handleExperienceAdd}
-                    aria-label="Add experience"
-                    sx={{
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      letterSpacing: 1,
-                      ml: 2,
-                      '&:hover': { bgcolor: 'rgba(255, 213, 79, 0.08)' },
-                      fontSize: 15
-                    }}
-                  >
-                    Add
-                  </Button>
-                </Box>
+                <Button 
+                  variant="contained"
+                  color="primary"
+                  onClick={handleExperienceAdd}
+                  aria-label="Add experience"
+                  sx={{ mb: 2, fontWeight: 600, textTransform: 'none' }}
+                >
+                  Add Experience
+                </Button>
                 {(profileData.experiences && profileData.experiences.length > 0) ? (
                   <Box>
                     {profileData.experiences.map((exp, idx) => (
@@ -639,27 +691,15 @@ export default function Profile() {
             <Box>
               <Divider sx={{ my: 2 }} />
               <Box sx={{ mb: 4 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <SchoolIcon sx={{ color: '#90caf9', fontSize: 28, mr: 1 }} />
-                  <Typography variant="h5" sx={{ fontWeight: 700, flex: 1 }}>Education</Typography>
-                  <Button
-                    variant="text"
-                    color="primary"
-                    startIcon={<SchoolIcon sx={{ color: '#90caf9' }} />}
-                    onClick={handleAcademicAdd}
-                    aria-label="Add education"
-                    sx={{
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      letterSpacing: 1,
-                      ml: 2,
-                      '&:hover': { bgcolor: 'rgba(33, 150, 243, 0.08)' },
-                      fontSize: 15
-                    }}
-                  >
-                    Add
-                  </Button>
-                </Box>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleAcademicAdd}
+                  aria-label="Add education"
+                  sx={{ mb: 2, fontWeight: 600, textTransform: 'none' }}
+                >
+                  Add Education
+                </Button>
                 {(profileData.education && profileData.education.length > 0) ? (
                   <Box>
                     {profileData.education.map((edu, idx) => (
@@ -685,27 +725,15 @@ export default function Profile() {
             <Box>
               <Divider sx={{ my: 2 }} />
               <Box sx={{ mb: 4 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <FolderIcon sx={{ color: '#b39ddb', fontSize: 28, mr: 1 }} />
-                  <Typography variant="h5" sx={{ fontWeight: 700, flex: 1 }}>Projects</Typography>
-                  <Button 
-                    variant="text"
-                    color="primary"
-                    startIcon={<FolderIcon sx={{ color: '#b39ddb' }} />}
-                    onClick={handleProjectAdd}
-                    aria-label="Add project"
-                    sx={{
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      letterSpacing: 1,
-                      ml: 2,
-                      '&:hover': { bgcolor: 'rgba(76, 110, 245, 0.08)' },
-                      fontSize: 15
-                    }}
-                  >
-                    Add
-                  </Button>
-                </Box>
+                <Button 
+                  variant="contained"
+                  color="primary"
+                  onClick={handleProjectAdd}
+                  aria-label="Add project"
+                  sx={{ mb: 2, fontWeight: 600, textTransform: 'none' }}
+                >
+                  Add Project
+                </Button>
                 {(profileData.projects && profileData.projects.length > 0) ? (
                   <Box>
                     {profileData.projects.map((project, idx) => (
@@ -744,14 +772,14 @@ export default function Profile() {
               </Box>
             </Box>
           )}
-                </Box>
-                </Box>
+        </Box>
+      </Box>
       <Footer />
-        <Snackbar 
+      <Snackbar 
         open={showSnackbar}
         autoHideDuration={2000}
         onClose={() => setShowSnackbar(false)}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         message="Contact info unlocked!"
       />
       <ToastContainer position="bottom-right" autoClose={2000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover theme="colored" />

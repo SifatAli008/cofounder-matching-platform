@@ -11,6 +11,8 @@ import {
   Tooltip
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import profileService from '../services/profileService';
+import { toast } from 'react-toastify';
 
 const Input = styled('input')({
   display: 'none',
@@ -39,12 +41,23 @@ export default function EditProfileDialog({ open, onClose, profileData, onSave }
     }));
   };
 
-  const handleAvatarChange = (e) => {
+  const handleAvatarChange = async (e) => {
     if (e.target.files && e.target.files[0]) {
-      setFormData(prev => ({
-        ...prev,
-        avatar: e.target.files[0]
-      }));
+      const file = e.target.files[0];
+      const formData = new FormData();
+      formData.append('profileImage', file);
+
+      try {
+        await profileService.updateProfileImage(formData);
+        setFormData(prev => ({
+          ...prev,
+          avatar: file
+        }));
+        toast.success('Profile image updated successfully');
+      } catch (error) {
+        console.error('Error uploading profile image:', error);
+        toast.error('Failed to update profile image');
+      }
     }
   };
 
