@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,11 +17,281 @@ import {
   Calendar,
   Building,
   GraduationCap,
-  Briefcase
+  Briefcase,
+  Menu,
+  X,
+  User,
+  LogOut,
+  Home,
+  Users,
+  Search,
+  Bell,
+  Settings,
+  Rocket
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+
+function Header({ currentPage, user, unreadNotifications = 0 }) {
+  const navigate = useNavigate();
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const profileDropdownRef = useRef();
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef();
+  const [searchValue, setSearchValue] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const initials = (user?.fullName || user?.email || "U")
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target)) {
+        setProfileDropdownOpen(false);
+      }
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setNotifOpen(false);
+      }
+    }
+    if (profileDropdownOpen || notifOpen || mobileMenuOpen) {
+      document.addEventListener("mousedown", handleClick);
+    } else {
+      document.removeEventListener("mousedown", handleClick);
+    }
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [profileDropdownOpen, notifOpen, mobileMenuOpen]);
+
+  function handleSearchSubmit(e) {
+    e.preventDefault();
+    setSearchValue("");
+  }
+
+  return (
+    <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-30 w-full">
+      <div className="flex items-center justify-between w-full">
+        {/* Left: Logo and Dashboard */}
+        <div className="flex items-center space-x-4 sm:space-x-8">
+          <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate("/")}> 
+            <Rocket className="h-7 w-7 sm:h-8 sm:w-8 text-primary-600" />
+            <span className="text-lg sm:text-2xl font-bold text-primary-600">theColeb</span>
+          </div>
+          <Button
+            variant="ghost"
+            className={`inline-flex font-semibold transition-colors px-3 sm:px-5 py-2 rounded-lg shadow-sm bg-white dark:bg-gray-900 text-primary-700 dark:text-primary-200 hover:bg-primary-50 hover:text-primary-900 hover:scale-105 ${currentPage === 'dashboard' ? 'bg-primary-600 text-white scale-105 shadow-md' : ''}`}
+            onClick={() => navigate("/dashboard")}
+            aria-label="Dashboard"
+            aria-current={currentPage === 'dashboard' ? 'page' : undefined}
+            style={{ transition: 'all 0.15s cubic-bezier(.4,0,.2,1)' }}
+          >
+            <span className="inline">Dashboard</span>
+          </Button>
+        </div>
+        {/* Hamburger for mobile */}
+        <div className="md:hidden flex items-center">
+          <Button variant="ghost" className="p-2" onClick={() => setMobileMenuOpen(v => !v)} aria-label="Open menu">
+            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </Button>
+        </div>
+        {/* Main header actions (desktop) */}
+        <div className="hidden md:flex items-center space-x-2 sm:space-x-4">
+          <form className="relative w-32 sm:w-64" onSubmit={handleSearchSubmit} role="search">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search co-founders..."
+              className="pl-10 w-full dark:bg-gray-800 dark:text-primary-100 text-sm sm:text-base"
+              value={searchValue}
+              onChange={e => setSearchValue(e.target.value)}
+              aria-label="Search co-founders"
+            />
+            {searchValue && (
+              <button
+                type="button"
+                className="absolute right-10 top-1/2 -translate-y-1/2 text-primary-400 hover:text-primary-700 focus:outline-none"
+                onClick={() => setSearchValue("")}
+                aria-label="Clear search"
+                tabIndex={0}
+              >
+                ×
+              </button>
+            )}
+            <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-primary-600 dark:text-primary-200 hover:text-primary-800">
+              <Search className="h-5 w-5" />
+            </button>
+          </form>
+          <div className="relative">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="rounded-full bg-white dark:bg-gray-800 text-primary-700 dark:text-primary-200 shadow border border-primary-200 dark:border-gray-700 p-2 transition-colors hover:bg-primary-50 hover:text-primary-900 focus:bg-primary-50 focus:text-primary-900 focus:outline-none"
+              aria-label="Notifications"
+              ref={notifRef}
+              onClick={() => setNotifOpen((v) => !v)}
+              aria-haspopup="true"
+              aria-expanded={notifOpen}
+              tabIndex={0}
+            >
+              <Bell className="h-5 w-5" />
+              {unreadNotifications > 0 && (
+                <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-500"></span>
+              )}
+            </Button>
+            {notifOpen && (
+              <div className="absolute z-50 mt-2 right-0 min-w-[220px] max-h-60 overflow-y-auto bg-white dark:bg-gray-900 border border-primary-200 dark:border-gray-700 rounded-lg shadow-xl animate-fade-in text-primary-800 dark:text-primary-100" style={{ top: '100%' }}>
+                <div className="absolute -top-2 right-4 w-4 h-4 overflow-hidden">
+                  <div className="w-4 h-4 bg-white dark:bg-gray-900 border-l border-t border-primary-200 dark:border-gray-700 rotate-45 shadow-sm"></div>
+                </div>
+                <div className="p-4 text-center">
+                  <span className="block py-2">No notifications yet.</span>
+                </div>
+              </div>
+            )}
+          </div>
+          <div ref={profileDropdownRef} className="relative group">
+            <button
+              className="rounded-full bg-white dark:bg-gray-800 text-primary-700 dark:text-primary-200 shadow border border-primary-200 dark:border-gray-700 p-1 flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 ml-1 transition-colors hover:bg-primary-50 hover:text-primary-900 focus:bg-primary-50 focus:text-primary-900 focus:outline-none"
+              aria-label="User menu"
+              onClick={() => setProfileDropdownOpen((v) => !v)}
+              aria-haspopup="true"
+              aria-expanded={profileDropdownOpen}
+              tabIndex={0}
+            >
+              <Avatar className="w-8 h-8 sm:w-9 sm:h-9 border-2 border-primary-300 dark:border-gray-700 shadow bg-primary-200 dark:bg-gray-700">
+                <AvatarImage src="/placeholder.svg" />
+                <AvatarFallback className="text-primary-800 dark:text-primary-100 bg-primary-200 dark:bg-gray-700 border border-primary-300 dark:border-gray-700">{initials}</AvatarFallback>
+              </Avatar>
+            </button>
+            {profileDropdownOpen && (
+              <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-40 sm:w-44 bg-white dark:bg-gray-900 border border-primary-200 dark:border-gray-700 rounded-lg shadow-xl z-50 animate-fade-in md:left-auto md:translate-x-0 md:right-0">
+                <button
+                  className="w-full flex items-center px-5 py-3 text-primary-800 dark:text-primary-100 hover:bg-primary-50 dark:hover:bg-gray-800 focus:bg-primary-50 dark:focus:bg-gray-800 focus:outline-none transition-colors text-base"
+                  onClick={() => { setProfileDropdownOpen(false); navigate("/profile"); }}
+                  tabIndex={0}
+                  aria-label="Profile"
+                >
+                  <User className="h-4 w-4 mr-2 text-primary-800 dark:text-primary-100" /> Profile
+                </button>
+                <button
+                  className="w-full flex items-center px-5 py-3 text-primary-800 dark:text-primary-100 hover:bg-primary-50 dark:hover:bg-gray-800 focus:bg-primary-50 dark:focus:bg-gray-800 focus:outline-none transition-colors text-base"
+                  onClick={() => { setProfileDropdownOpen(false); localStorage.removeItem("token"); navigate("/login"); }}
+                  tabIndex={0}
+                  aria-label="Logout"
+                >
+                  <LogOut className="h-4 w-4 mr-2 text-primary-800 dark:text-primary-100" /> Logout
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+        {/* Mobile menu dropdown */}
+        {mobileMenuOpen && (
+          <>
+            <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setMobileMenuOpen(false)}></div>
+            <div className="absolute top-full left-0 w-full bg-white dark:bg-gray-900 border-t border-primary-200 dark:border-gray-700 shadow-lg z-50 flex flex-col items-start p-4 space-y-4 md:hidden animate-fade-in">
+              <Button
+                variant="ghost"
+                className={`w-full text-left font-semibold transition-colors px-5 py-2 rounded-lg shadow-sm bg-white dark:bg-gray-900 text-primary-700 dark:text-primary-200 hover:bg-primary-50 hover:text-primary-900 hover:scale-105 ${currentPage === 'dashboard' ? 'bg-primary-600 text-white scale-105 shadow-md' : ''}`}
+                onClick={() => { setMobileMenuOpen(false); navigate("/dashboard"); }}
+                aria-label="Dashboard"
+                aria-current={currentPage === 'dashboard' ? 'page' : undefined}
+              >
+                <span className="inline">Dashboard</span>
+              </Button>
+              <form className="relative w-full" onSubmit={handleSearchSubmit} role="search">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search co-founders..."
+                  className="pl-10 w-full dark:bg-gray-800 dark:text-primary-100"
+                  value={searchValue}
+                  onChange={e => setSearchValue(e.target.value)}
+                  aria-label="Search co-founders"
+                />
+                {searchValue && (
+                  <button
+                    type="button"
+                    className="absolute right-10 top-1/2 -translate-y-1/2 text-primary-400 hover:text-primary-700 focus:outline-none"
+                    onClick={() => setSearchValue("")}
+                    aria-label="Clear search"
+                    tabIndex={0}
+                  >
+                    ×
+                  </button>
+                )}
+                <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-primary-600 dark:text-primary-200 hover:text-primary-800">
+                  <Search className="h-5 w-5" />
+                </button>
+              </form>
+              <div className="relative w-full flex justify-start">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="rounded-full bg-white dark:bg-gray-800 text-primary-700 dark:text-primary-200 shadow border border-primary-200 dark:border-gray-700 p-2 transition-colors hover:bg-primary-50 hover:text-primary-900 focus:bg-primary-50 focus:text-primary-900 focus:outline-none"
+                  aria-label="Notifications"
+                  ref={notifRef}
+                  onClick={() => setNotifOpen((v) => !v)}
+                  aria-haspopup="true"
+                  aria-expanded={notifOpen}
+                  tabIndex={0}
+                >
+                  <Bell className="h-5 w-5" />
+                  {unreadNotifications > 0 && (
+                    <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-500"></span>
+                  )}
+                </Button>
+                {notifOpen && (
+                  <div className="absolute z-50 mt-2 left-0 min-w-[220px] max-h-60 overflow-y-auto bg-white dark:bg-gray-900 border border-primary-200 dark:border-gray-700 rounded-lg shadow-xl animate-fade-in text-primary-800 dark:text-primary-100" style={{ top: '100%' }}>
+                    <div className="absolute -top-2 left-4 w-4 h-4 overflow-hidden">
+                      <div className="w-4 h-4 bg-white dark:bg-gray-900 border-l border-t border-primary-200 dark:border-gray-700 rotate-45 shadow-sm"></div>
+                    </div>
+                    <div className="p-4 text-center">
+                      <span className="block py-2">No notifications yet.</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <button
+                className="rounded-full bg-white dark:bg-gray-800 text-primary-700 dark:text-primary-200 shadow border border-primary-200 dark:border-gray-700 p-1 flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 ml-1 transition-colors hover:bg-primary-50 hover:text-primary-900 focus:bg-primary-50 focus:text-primary-900 focus:outline-none"
+                aria-label="User menu"
+                onClick={() => setProfileDropdownOpen((v) => !v)}
+                aria-haspopup="true"
+                aria-expanded={profileDropdownOpen}
+                tabIndex={0}
+              >
+                <Avatar className="w-8 h-8 sm:w-9 sm:h-9 border-2 border-primary-300 dark:border-gray-700 shadow bg-primary-200 dark:bg-gray-700">
+                  <AvatarImage src="/placeholder.svg" />
+                  <AvatarFallback className="text-primary-800 dark:text-primary-100 bg-primary-200 dark:bg-gray-700 border border-primary-300 dark:border-gray-700">{initials}</AvatarFallback>
+                </Avatar>
+              </button>
+              {profileDropdownOpen && (
+                <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-40 sm:w-44 bg-white dark:bg-gray-900 border border-primary-200 dark:border-gray-700 rounded-lg shadow-xl z-50 animate-fade-in md:left-auto md:translate-x-0 md:right-0">
+                  <button
+                    className="w-full flex items-center px-5 py-3 text-primary-800 dark:text-primary-100 hover:bg-primary-50 dark:hover:bg-gray-800 focus:bg-primary-50 dark:focus:bg-gray-800 focus:outline-none transition-colors text-base"
+                    onClick={() => { setProfileDropdownOpen(false); navigate("/profile"); }}
+                    tabIndex={0}
+                    aria-label="Profile"
+                  >
+                    <User className="h-4 w-4 mr-2 text-primary-800 dark:text-primary-100" /> Profile
+                  </button>
+                  <button
+                    className="w-full flex items-center px-5 py-3 text-primary-800 dark:text-primary-100 hover:bg-primary-50 dark:hover:bg-gray-800 focus:bg-primary-50 dark:focus:bg-gray-800 focus:outline-none transition-colors text-base"
+                    onClick={() => { setProfileDropdownOpen(false); localStorage.removeItem("token"); navigate("/login"); }}
+                    tabIndex={0}
+                    aria-label="Logout"
+                  >
+                    <LogOut className="h-4 w-4 mr-2 text-primary-800 dark:text-primary-100" /> Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </nav>
+  );
+}
 
 const Profile = () => {
   const { toast } = useToast();
@@ -37,7 +306,8 @@ const Profile = () => {
     github: "",
     linkedin: "",
     portfolio: "",
-    profileSummary: ""
+    profileSummary: "",
+    skills: []
   });
   const [newSkill, setNewSkill] = useState("");
   const [newExperience, setNewExperience] = useState({ title: '', company: '', description: '', startDate: '', endDate: '' });
@@ -49,6 +319,13 @@ const Profile = () => {
   const [editAcademicId, setEditAcademicId] = useState(null);
   const [editExperienceId, setEditExperienceId] = useState(null);
   const [editProjectId, setEditProjectId] = useState(null);
+  const [navOpen, setNavOpen] = useState(false);
+  const navRef = useRef();
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const profileDropdownRef = useRef();
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef();
+  const [searchValue, setSearchValue] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -58,7 +335,7 @@ const Profile = () => {
     }
     async function fetchUser() {
       try {
-        const res = await apiFetch("http://localhost:3000/collab/v1/auth/me");
+        const res = await apiFetch("http://localhost:3000/collab/v1/info/profile");
         setUserProfile({
           ...res.user,
           fullName: res.user.basicInfo?.fullName || res.user.email,
@@ -80,7 +357,8 @@ const Profile = () => {
           github: res.user.showcase?.github || "",
           linkedin: res.user.showcase?.linkedin || "",
           portfolio: res.user.showcase?.portfolio || "",
-          profileSummary: res.user.bioSummary?.shortBio || ""
+          profileSummary: res.user.bioSummary?.shortBio || "",
+          skills: res.user.technicalProfile?.skills || []
         });
       } catch (e) {
         if (e.message && e.message.toLowerCase().includes("unauthorized")) {
@@ -94,18 +372,58 @@ const Profile = () => {
     fetchUser();
   }, [navigate]);
 
+  useEffect(() => {
+    function handleClick(e) {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target)) {
+        setProfileDropdownOpen(false);
+      }
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setNotifOpen(false);
+      }
+    }
+    if (profileDropdownOpen || notifOpen) {
+      document.addEventListener("mousedown", handleClick);
+    } else {
+      document.removeEventListener("mousedown", handleClick);
+    }
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [profileDropdownOpen, notifOpen]);
+
   const handleInputChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleSave = async () => {
     try {
-      // Example: update user profile endpoint (adjust as needed)
-      await apiFetch("http://localhost:3000/collab/v1/auth/me", {
+      // Update basic info
+      await apiFetch("http://localhost:3000/collab/v1/info", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form)
+        body: JSON.stringify({
+          fullName: form.fullName,
+          location: form.location
+        })
       });
+
+      // Update bio summary
+      await apiFetch("http://localhost:3000/collab/v1/bio", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          shortBio: form.profileSummary,
+          tagline: form.tagLine
+        })
+      });
+
+      // Update skills
+      await apiFetch("http://localhost:3000/collab/v1/tech-profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          skills: form.skills
+        })
+      });
+
       setUserProfile((prev) => ({ ...prev, ...form }));
       setIsEditing(false);
       toast({ title: "Profile updated!", description: "Your changes have been saved." });
@@ -120,10 +438,10 @@ const Profile = () => {
     setForm((prev) => ({ ...prev, skills: updatedSkills }));
     setNewSkill("");
     try {
-      await apiFetch("http://localhost:3000/collab/v1/auth/me", {
+      await apiFetch("http://localhost:3000/collab/v1/tech-profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, skills: updatedSkills })
+        body: JSON.stringify({ skills: updatedSkills })
       });
       setUserProfile((prev) => ({ ...prev, skills: updatedSkills }));
       toast({ title: "Skill added!", description: "New skill has been added." });
@@ -273,7 +591,12 @@ const Profile = () => {
   };
 
   // fallback mock data if not logged in
-  const profile = userProfile || {
+  const profile = {
+    ...userProfile,
+    academics: (userProfile && Array.isArray(userProfile.academics)) ? userProfile.academics : [],
+    experience: (userProfile && Array.isArray(userProfile.experience)) ? userProfile.experience : [],
+    projects: (userProfile && Array.isArray(userProfile.projects)) ? userProfile.projects : [],
+  } || {
     fullName: "John Doe",
     tagLine: "Full-Stack Developer & Entrepreneur",
     profileSummary: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivid finibus sit ut mauris bibendum aliqam elementum sit, vel sit lorem, ullamcorper lorem vulputate elit. Sit ut mauris bibendum. Neque bibendum et venenatis mauris, mauris bibendum aliqam elementum sit, vel sit lorem, ullamcorper lorem vulputate elit.",
@@ -289,47 +612,26 @@ const Profile = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold">T</span>
-            </div>
-            <span className="text-xl font-bold">theColeb</span>
-          </div>
-          <Button
-            onClick={() => {
-              if (isEditing) handleSave();
-              else setIsEditing(true);
-            }}
-          >
-            <Edit3 className="h-4 w-4 mr-2" />
-            {isEditing ? "Save Changes" : "Edit Profile"}
-          </Button>
-        </div>
-      </nav>
-
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <Header currentPage="profile" user={userProfile} unreadNotifications={0} />
       <div className="container mx-auto px-6 py-8 max-w-4xl">
         {/* Profile Header */}
-        <Card className="mb-8">
+        <Card className="mb-8 shadow-lg bg-white/90">
           <CardContent className="p-8">
             <div className="flex items-start space-x-6">
-              <div className="relative">
-                <Avatar className="h-24 w-24">
+              <div className="relative group">
+                <Avatar className="h-24 w-24 shadow border-2 border-primary-200">
                   <AvatarImage src="/placeholder.svg" />
                   <AvatarFallback className="text-2xl">
-                    {profile.fullName.split(' ').map(n => n[0]).join('')}
+                    {(profile.fullName || '').split(' ').map(n => n[0]).join('')}
                   </AvatarFallback>
                 </Avatar>
                 {isEditing && (
-                  <Button size="sm" className="absolute -bottom-2 -right-2 rounded-full h-8 w-8 p-0">
+                  <Button size="sm" className="absolute -bottom-2 -right-2 rounded-full h-8 w-8 p-0 bg-primary-600 hover:bg-primary-700 text-white shadow-lg border-2 border-white transition" variant="default">
                     <Edit3 className="h-3 w-3" />
                   </Button>
                 )}
               </div>
-              
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-2">
                   {isEditing ? (
@@ -337,24 +639,32 @@ const Profile = () => {
                       name="fullName"
                       value={form.fullName}
                       onChange={handleInputChange}
-                      className="text-2xl font-bold border-none p-0 h-auto"
+                      className="text-2xl font-bold border-none p-0 h-auto bg-transparent focus:ring-0 focus:border-b-2 focus:border-primary-500"
                     />
                   ) : (
-                    <h1 className="text-2xl font-bold">{profile.fullName}</h1>
+                    <h1 className="text-2xl font-bold">{profile.fullName || ''}</h1>
                   )}
+                  <Button
+                    onClick={() => {
+                      if (isEditing) handleSave();
+                      else setIsEditing(true);
+                    }}
+                    className={`ml-4 px-4 py-2 rounded-md font-semibold transition bg-primary-600 text-white hover:bg-primary-700 focus:ring-2 focus:ring-primary-400 focus:outline-none shadow ${isEditing ? 'ring-2 ring-primary-400' : ''}`}
+                  >
+                    <Edit3 className="h-4 w-4 mr-2" />
+                    {isEditing ? "Save Changes" : "Edit Profile"}
+                  </Button>
                 </div>
-                
                 {isEditing ? (
                   <Input 
                     name="tagLine"
                     value={form.tagLine}
                     onChange={handleInputChange}
-                    className="text-gray-600 border-none p-0 h-auto mb-4"
+                    className="text-gray-600 border-none p-0 h-auto mb-4 bg-transparent focus:ring-0 focus:border-b-2 focus:border-primary-500"
                   />
                 ) : (
                   <p className="text-gray-600 mb-4">{profile.tagLine}</p>
                 )}
-
                 <div className="flex items-center space-x-4 text-sm text-gray-500 mb-4">
                   <div className="flex items-center">
                     <MapPin className="h-4 w-4 mr-1" />
@@ -363,7 +673,7 @@ const Profile = () => {
                         name="location"
                         value={form.location}
                         onChange={handleInputChange}
-                        className="border-none p-0 h-auto"
+                        className="border-none p-0 h-auto bg-transparent focus:ring-0 focus:border-b-2 focus:border-primary-500"
                       />
                     ) : (
                       profile.location
@@ -374,42 +684,41 @@ const Profile = () => {
                     {profile.email}
                   </div>
                 </div>
-
                 <div className="flex items-center space-x-3">
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" className="hover:bg-primary-50 hover:text-primary-700 transition">
                     <Github className="h-4 w-4 mr-2" />
                     {isEditing ? (
                       <Input
                         name="github"
                         value={form.github}
                         onChange={handleInputChange}
-                        className="border-none p-0 h-auto w-24 inline-block"
+                        className="border-none p-0 h-auto w-24 inline-block bg-transparent focus:ring-0 focus:border-b-2 focus:border-primary-500"
                       />
                     ) : (
                       "GitHub"
                     )}
                   </Button>
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" className="hover:bg-primary-50 hover:text-primary-700 transition">
                     <Linkedin className="h-4 w-4 mr-2" />
                     {isEditing ? (
                       <Input
                         name="linkedin"
                         value={form.linkedin}
                         onChange={handleInputChange}
-                        className="border-none p-0 h-auto w-24 inline-block"
+                        className="border-none p-0 h-auto w-24 inline-block bg-transparent focus:ring-0 focus:border-b-2 focus:border-primary-500"
                       />
                     ) : (
                       "LinkedIn"
                     )}
                   </Button>
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" className="hover:bg-primary-50 hover:text-primary-700 transition">
                     <ExternalLink className="h-4 w-4 mr-2" />
                     {isEditing ? (
                       <Input
                         name="portfolio"
                         value={form.portfolio}
                         onChange={handleInputChange}
-                        className="border-none p-0 h-auto w-24 inline-block"
+                        className="border-none p-0 h-auto w-24 inline-block bg-transparent focus:ring-0 focus:border-b-2 focus:border-primary-500"
                       />
                     ) : (
                       "Portfolio"
@@ -691,811 +1000,3 @@ const Profile = () => {
 };
 
 export default Profile;
-=======
-import React, { useState, useEffect } from 'react';
-import { 
-  Avatar, 
-  Box, 
-  Button, 
-  Chip, 
-  Container, 
-  Divider, 
-  Tab, 
-  Tabs, 
-  TextField, 
-  Typography, 
-  Paper, 
-  Grid, 
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  FormHelperText,
-  Snackbar,
-  Alert,
-  Card,
-  CardContent,
-  CardActions,
-  Link,
-  Stack,
-  Tooltip,
-  Badge
-} from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import SchoolIcon from '@mui/icons-material/School';
-import WorkIcon from '@mui/icons-material/Work';
-import FolderIcon from '@mui/icons-material/Folder';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import LaunchIcon from '@mui/icons-material/Launch';
-import EditProfileDialog from '../components/EditProfileDialog';
-import AcademicForm from '../components/AcademicForm';
-import ExperienceForm from '../components/ExperienceForm';
-import ProjectForm from '../components/ProjectForm';
-import Header from '../components/Header';
-import ReactIcon from '@mui/icons-material/IntegrationInstructions';
-import CodeIcon from '@mui/icons-material/Code';
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import BadgeOutlinedIcon from '@mui/icons-material/VerifiedUserOutlined';
-import SaveIcon from '@mui/icons-material/Save';
-import CloseIcon from '@mui/icons-material/Close';
-import LinkIcon from '@mui/icons-material/Link';
-import PhoneIcon from '@mui/icons-material/Phone';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import Footer from '../components/Footer';
-import TwitterIcon from '@mui/icons-material/Twitter';
-import ThumbUpAltOutlinedIcon from '@mui/icons-material/ThumbUpAltOutlined';
-import ChatBubbleOutlineOutlinedIcon from '@mui/icons-material/ChatBubbleOutlineOutlined';
-import AddCircleIcon from '@mui/icons-material/AddCircle';
-import MenuItem from '@mui/material/MenuItem';
-import Select from '@mui/material/Select';
-import Autocomplete from '@mui/material/Autocomplete';
-import Skeleton from '@mui/material/Skeleton';
-import LinkedInIcon from '@mui/icons-material/LinkedIn';
-import GitHubIcon from '@mui/icons-material/GitHub';
-import EmailIcon from '@mui/icons-material/Email';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import LinearProgress from '@mui/material/LinearProgress';
-import Switch from '@mui/material/Switch';
-import CircularProgress from '@mui/material/CircularProgress';
-import profileService from '../services/profileService';
-
-const MAX_SUMMARY_LENGTH = 300;
-const MAX_SKILLS = 10;
-
-const PROJECTS = [
-  {
-    title: 'E-Commerce Platform',
-    tech: ['React', 'Node.js', 'MongoDB', 'Stripe'],
-    description: 'Full-stack e-commerce solution with payment integration, user authentication, and admin dashboard. Features include product management, order tracking, and real-time inventory updates.',
-    liveDemo: 'https://ecommerce-demo.com',
-    sourceCode: 'https://github.com/username/ecommerce-platform',
-  },
-  {
-    title: 'Task Management App',
-    tech: ['React', 'Firebase', 'Material-UI'],
-    description: 'Collaborative task management application with real-time updates, file sharing, and team collaboration features. Supports drag-and-drop functionality and multiple project views.',
-    liveDemo: 'https://taskapp-demo.com',
-    sourceCode: 'https://github.com/username/task-management-app',
-  },
-];
-
-function TabPanel({ children, value, index }) {
-  return value === index && (
-    <Box sx={{ p: 2 }}>{children}</Box>
-  );
-}
-
-// Helper to get icon for a skill
-const getSkillIcon = (skill) => {
-  switch (skill.toLowerCase()) {
-    case 'react':
-      return <img src="https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/react.svg" alt="React" className="w-4 h-4 mr-1" />;
-    case 'node.js':
-    case 'nodejs':
-      return <img src="https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/nodedotjs.svg" alt="Node.js" className="w-4 h-4 mr-1" />;
-    case 'ui/ux':
-      return <CodeIcon fontSize="small" className="mr-1" />;
-    case 'startup':
-      return <CodeIcon fontSize="small" className="mr-1" />;
-    default:
-      // fallback to generic code icon
-      return <CodeIcon fontSize="small" className="mr-1" />;
-  }
-};
-
-// DnD Sortable Skill Chip
-function SortableSkillChip({ skill, idx, handleRemoveSkill }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: skill });
-  return (
-    <div
-      ref={setNodeRef}
-      style={{
-        transform: transform ? `translate(${transform.x}px, ${transform.y}px)` : undefined,
-        transition,
-        zIndex: isDragging ? 100 : 'auto',
-      }}
-      {...attributes}
-      {...listeners}
-      className="inline-block"
-    >
-      <Tooltip
-        title={<span className='text-base font-semibold text-blue-700'>Endorse {skill}</span>}
-        arrow
-        componentsProps={{ tooltip: { sx: { bgcolor: 'white', color: '#1976d2', boxShadow: 3, fontWeight: 600, fontSize: 16 } } }}
-      >
-        <Badge
-          badgeContent={Math.floor(Math.random()*10+1)}
-          color="secondary"
-          overlap="circular"
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-          sx={{
-            '& .MuiBadge-badge': {
-              fontSize: 14,
-              minWidth: 22,
-              height: 22,
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #a4508b 0%, #5f0a87 100%)',
-              color: 'white',
-              boxShadow: '0 2px 8px rgba(90,0,120,0.15)',
-              border: '2px solid #fff',
-            },
-          }}
-        >
-          <Chip
-            label={<span className="flex items-center gap-1 text-base font-semibold">{getSkillIcon(skill)}{skill}</span>}
-            color="primary"
-            onDelete={() => handleRemoveSkill(skill)}
-            deleteIcon={<DeleteIcon />}
-            className="capitalize chip-hover"
-            sx={{
-              borderRadius: '999px',
-              px: 2.5,
-              py: 1.2,
-              fontSize: 18,
-              minHeight: 44,
-              boxShadow: '0 2px 8px rgba(25, 118, 210, 0.10)',
-              background: 'linear-gradient(90deg, #1976d2 80%, #64b5f6 100%)',
-              color: 'white',
-              transition: 'all 0.2s cubic-bezier(.4,2,.6,1)',
-              '&:hover': {
-                background: 'linear-gradient(90deg, #2196f3 80%, #90caf9 100%)',
-                boxShadow: '0 4px 16px rgba(25, 118, 210, 0.18)',
-                transform: 'scale(1.08)',
-              },
-            }}
-          />
-        </Badge>
-      </Tooltip>
-    </div>
-  );
-}
-
-export default function Profile() {
-  const [activeTab, setActiveTab] = useState(0);
-  const [skills, setSkills] = useState(['React', 'Node.js', 'UI/UX', 'Startup']);
-  const [summary, setSummary] = useState('');
-  const [skillInput, setSkillInput] = useState('');
-  const [skillError, setSkillError] = useState('');
-  const [openSkillDialog, setOpenSkillDialog] = useState(false);
-  const [openEditProfile, setOpenEditProfile] = useState(false);
-  const [openAcademicForm, setOpenAcademicForm] = useState(false);
-  const [openExperienceForm, setOpenExperienceForm] = useState(false);
-  const [openProjectForm, setOpenProjectForm] = useState(false);
-  const [editingAcademic, setEditingAcademic] = useState(null);
-  const [editingExperience, setEditingExperience] = useState(null);
-  const [editingProject, setEditingProject] = useState(null);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const [profileData, setProfileData] = useState({
-    fullName: '',
-    tagLine: '',
-    location: '',
-    email: '',
-    phone: '',
-    skills: [],
-    summary: '',
-    experiences: [],
-    education: [],
-    projects: []
-  });
-  const [summarySaved, setSummarySaved] = useState(false);
-  const [showSkillFab, setShowSkillFab] = useState(false);
-  const [showEditFab, setShowEditFab] = useState(false);
-  const [summaryToast, setSummaryToast] = useState(false);
-  const [showMoreAcademics, setShowMoreAcademics] = useState(false);
-  const [showMoreExperiences, setShowMoreExperiences] = useState(false);
-  const [showMoreProjects, setShowMoreProjects] = useState(false);
-  const [viewAs, setViewAs] = useState('Public');
-  const [lastUpdated, setLastUpdated] = useState(new Date());
-  const skillSuggestions = ['React', 'Node.js', 'UI/UX', 'Startup', 'Python', 'Java', 'C++', 'TypeScript', 'Figma', 'AWS', 'Docker', 'Kubernetes', 'SQL', 'MongoDB', 'GraphQL', 'Redux', 'Sass', 'Tailwind', 'Material UI'];
-  const [loadingAcademics, setLoadingAcademics] = useState(false);
-  const [loadingExperiences, setLoadingExperiences] = useState(false);
-  const [loadingProjects, setLoadingProjects] = useState(false);
-  const [lookingFor, setLookingFor] = useState('Technical Co-founder');
-  const [whyLooking, setWhyLooking] = useState('Looking for a technical co-founder to help build and scale our MVP.');
-  const [profileCompleteness, setProfileCompleteness] = useState(75);
-  const [isConnected, setIsConnected] = useState(false);
-  const [showSnackbar, setShowSnackbar] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(true);
-  const [endorsements, setEndorsements] = useState({ React: 5, 'Node.js': 3, JavaScript: 2, Python: 1, MongoDB: 1 });
-  const [projectLikes, setProjectLikes] = useState([2, 1]);
-  const [projectComments, setProjectComments] = useState([1, 0]);
-  const [editMode, setEditMode] = useState(false);
-  const [newSkill, setNewSkill] = useState('');
-  const [editExpIdx, setEditExpIdx] = useState(null);
-  const [editEduIdx, setEditEduIdx] = useState(null);
-  const [editProjIdx, setEditProjIdx] = useState(null);
-  const [socialLinks, setSocialLinks] = useState({
-    linkedin: 'https://linkedin.com/in/rafayet',
-    github: 'https://github.com/rafayet',
-    twitter: 'https://twitter.com/rafayet',
-    website: 'https://rafayet.com'
-  });
-  const [deleteDialog, setDeleteDialog] = useState({ open: false, type: '', idx: null });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [contactPublic, setContactPublic] = useState(true);
-  const [missingTechProfile, setMissingTechProfile] = useState(false);
-  const [missingBio, setMissingBio] = useState(false);
-
-  // Fetch profile data on component mount and after saves
-  const fetchProfileData = async () => {
-    try {
-      setLoading(true);
-      setMissingTechProfile(false);
-      setMissingBio(false);
-      const [basicInfo, techProfileRes, bioRes] = await Promise.allSettled([
-        profileService.getBasicInfo(),
-        profileService.getTechProfile(),
-        profileService.getBio()
-      ]);
-
-      let techProfile = [];
-      if (techProfileRes.status === 'fulfilled') {
-        techProfile = techProfileRes.value.data.techProfile?.skills || [];
-      } else if (techProfileRes.reason?.response?.status === 404) {
-        setMissingTechProfile(true);
-      }
-
-      let summary = '';
-      if (bioRes.status === 'fulfilled') {
-        summary = bioRes.value.data.bio?.shortBio || '';
-      } else if (bioRes.reason?.response?.status === 404) {
-        setMissingBio(true);
-      }
-
-      setProfileData(prev => ({
-        ...prev,
-        fullName: basicInfo.status === 'fulfilled' ? basicInfo.value.data.data.fullName || '' : '',
-        tagLine: basicInfo.status === 'fulfilled' ? basicInfo.value.data.data.tagLine || '' : '',
-        location: basicInfo.status === 'fulfilled' ? basicInfo.value.data.data.location || '' : '',
-        email: basicInfo.status === 'fulfilled' ? basicInfo.value.data.data.email || '' : '',
-        phone: basicInfo.status === 'fulfilled' ? basicInfo.value.data.data.phone || '' : '',
-        skills: techProfile,
-        summary: summary
-      }));
-    } catch (error) {
-      console.error('Error fetching profile data:', error);
-      toast.error('Failed to load profile data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchProfileData();
-  }, []);
-
-  const handleSkillInputChange = (e) => {
-    setSkillInput(e.target.value);
-    setSkillError('');
-  };
-
-  const handleSkillInputKeyDown = (e) => {
-    if (e.key === 'Enter' && skillInput.trim()) {
-      if (skills.map(s => s.toLowerCase()).includes(skillInput.trim().toLowerCase())) {
-        setSkillError('Skill already added');
-        return;
-      }
-      if (skills.length >= MAX_SKILLS) {
-        setSkillError(`Maximum ${MAX_SKILLS} skills allowed`);
-        return;
-      }
-      setSkills([...skills, skillInput.trim()]);
-      setSkillInput('');
-    } else if (e.key === 'Backspace' && !skillInput && skills.length > 0) {
-      setSkills(skills.slice(0, -1));
-    }
-  };
-
-  const handleSkillAddClick = () => {
-    if (skillInput.trim()) {
-      if (skills.map(s => s.toLowerCase()).includes(skillInput.trim().toLowerCase())) {
-        setSkillError('Skill already added');
-        return;
-      }
-      if (skills.length >= MAX_SKILLS) {
-        setSkillError(`Maximum ${MAX_SKILLS} skills allowed`);
-        return;
-      }
-      setSkills([...skills, skillInput.trim()]);
-      setSkillInput('');
-    }
-  };
-
-  const handleRemoveSkill = (skillToRemove) => {
-    setSkills(skills.filter(skill => skill !== skillToRemove));
-    setSnackbar({
-      open: true,
-      message: 'Skill removed successfully',
-      severity: 'success'
-    });
-    notify('Skill removed successfully');
-  };
-
-  const handleSummaryChange = (e) => {
-    const value = e.target.value;
-    if (value.length <= MAX_SUMMARY_LENGTH) {
-      setSummary(value);
-    }
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
-  };
-
-  const handleProfileSave = async (formData) => {
-    try {
-      await profileService.updateBasicInfo(formData);
-      await fetchProfileData();
-      setOpenEditProfile(false);
-      toast.success('Profile updated successfully');
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
-    }
-  };
-
-  const handleAcademicSave = async (formData) => {
-    try {
-      if (editingAcademic !== null) {
-        await profileService.updateAcademic(editingAcademic, formData);
-      } else {
-        await profileService.addAcademic(formData);
-      }
-      await fetchProfileData();
-      setOpenAcademicForm(false);
-      toast.success(`Academic record ${editingAcademic !== null ? 'updated' : 'added'} successfully`);
-    } catch (error) {
-      console.error('Error saving academic record:', error);
-      toast.error('Failed to save academic record');
-    }
-  };
-
-  const handleAcademicAdd = () => { setEditingAcademic(null); setOpenAcademicForm(true); };
-  const handleAcademicEdit = (idx) => { setEditingAcademic(idx); setOpenAcademicForm(true); };
-  const handleAcademicClose = () => setOpenAcademicForm(false);
-
-  const handleExperienceSave = async (formData) => {
-    try {
-      if (editingExperience !== null) {
-        await profileService.updateExperience(editingExperience, formData);
-      } else {
-        await profileService.addExperience(formData);
-      }
-      await fetchProfileData();
-      setOpenExperienceForm(false);
-      toast.success(`Experience ${editingExperience !== null ? 'updated' : 'added'} successfully`);
-    } catch (error) {
-      console.error('Error saving experience:', error);
-      toast.error('Failed to save experience');
-    }
-  };
-
-  const handleExperienceAdd = () => { setEditingExperience(null); setOpenExperienceForm(true); };
-  const handleExperienceEdit = (idx) => { setEditingExperience(idx); setOpenExperienceForm(true); };
-  const handleExperienceClose = () => setOpenExperienceForm(false);
-
-  const handleProjectSave = (formData) => {
-    setProfileData(prev => {
-      const projects = prev.projects ? [...prev.projects] : [];
-      if (editingProject !== null) projects[editingProject] = formData;
-      else projects.push(formData);
-      return { ...prev, projects };
-    });
-    setOpenProjectForm(false);
-    setSnackbar({ open: true, message: `Project ${editingProject !== null ? 'updated' : 'added'} successfully`, severity: 'success' });
-  };
-
-  const handleProjectAdd = () => { setEditingProject(null); setOpenProjectForm(true); };
-  const handleProjectEdit = (idx) => { setEditingProject(idx); setOpenProjectForm(true); };
-  const handleProjectClose = () => setOpenProjectForm(false);
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Present';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
-  };
-
-  const handleSummarySave = () => {
-    setSummarySaved(true);
-    setTimeout(() => setSummarySaved(false), 1500);
-    notify('Summary auto-saved!');
-  };
-
-  // Toast notifications
-  const notify = (msg) => toast.success(msg);
-
-  // Calculate profile completeness
-  const calculateProfileCompleteness = () => {
-    let score = 0;
-    const total = 7; // Total number of sections to check
-
-    if (profileData.fullName) score++;
-    if (profileData.tagLine) score++;
-    if (profileData.summary) score++;
-    if (profileData.skills.length > 0) score++;
-    if (profileData.experiences.length > 0) score++;
-    if (profileData.education.length > 0) score++;
-    if (PROJECTS.length > 0) score++;
-
-    setProfileCompleteness(Math.round((score / total) * 100));
-  };
-
-  // Delete handlers
-  const handleDelete = async () => {
-    try {
-      setLoading(true);
-      if (deleteDialog.type === 'education') {
-        await profileService.deleteAcademic(deleteDialog.idx);
-      } else if (deleteDialog.type === 'experience') {
-        await profileService.deleteExperience(deleteDialog.idx);
-      }
-      
-      setProfileData(prev => {
-        const updated = { ...prev };
-        if (deleteDialog.type === 'education') {
-          updated.education = prev.education.filter((_, i) => i !== deleteDialog.idx);
-        }
-        if (deleteDialog.type === 'experience') {
-          updated.experiences = prev.experiences.filter((_, i) => i !== deleteDialog.idx);
-        }
-        return updated;
-      });
-      
-      setDeleteDialog({ open: false, type: '', idx: null });
-      toast.success('Deleted successfully');
-    } catch (error) {
-      console.error('Error deleting item:', error);
-      toast.error('Failed to delete item');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Profile completeness calculation
-  const getCompleteness = () => {
-    let score = 0, total = 6;
-    if (profileData.fullName) score++;
-    if (profileData.tagLine) score++;
-    if (profileData.summary) score++;
-    if (profileData.skills && profileData.skills.length > 0) score++;
-    if (profileData.experiences && profileData.experiences.length > 0) score++;
-    if (profileData.education && profileData.education.length > 0) score++;
-    return Math.round((score / total) * 100);
-  };
-  const completeness = getCompleteness();
-  const missingTips = [];
-  if (!profileData.fullName) missingTips.push('Add your full name');
-  if (!profileData.tagLine) missingTips.push('Add a tagline');
-  if (!profileData.summary) missingTips.push('Write an about section');
-  if (!profileData.skills || profileData.skills.length === 0) missingTips.push('Add some skills');
-  if (!profileData.experiences || profileData.experiences.length === 0) missingTips.push('Add work experience');
-  if (!profileData.education || profileData.education.length === 0) missingTips.push('Add education');
-
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  return (
-    <Box sx={{ bgcolor: '#fff', minHeight: '100vh', fontFamily: `'Inter', 'Segoe UI', 'Arial', sans-serif` }}>
-      <Header />
-      <Box sx={{ width: '100%', maxWidth: 900, mx: 'auto', bgcolor: '#fff', borderRadius: 3, boxShadow: '0 1px 4px rgba(0,0,0,0.03)', px: { xs: 2, sm: 6 }, py: { xs: 3, sm: 6 } }}>
-        {/* Profile Completeness */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#888', mb: 1, letterSpacing: 1 }}>PROFILE COMPLETENESS</Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <LinearProgress value={completeness} variant="determinate" sx={{ flex: 1, height: 8, borderRadius: 4, bgcolor: '#ececec', '& .MuiLinearProgress-bar': { bgcolor: completeness >= 80 ? '#4caf50' : completeness >= 50 ? '#ff9800' : '#f44336' } }} />
-            <Typography variant="body2" sx={{ color: '#888' }}>{completeness}%</Typography>
-          </Box>
-          {completeness < 100 && (
-            <Box sx={{ mt: 1 }}>
-              <Typography variant="body2" sx={{ color: '#f44336' }}>Tips to complete your profile:</Typography>
-              <ul style={{ margin: 0, paddingLeft: 18 }}>
-                {missingTips.map(tip => <li key={tip}><Typography variant="body2" sx={{ color: '#888' }}>{tip}</Typography></li>)}
-              </ul>
-            </Box>
-          )}
-        </Box>
-        {/* Last updated */}
-        <Typography variant="caption" sx={{ color: '#bbb', mb: 2, display: 'block' }}>Last updated: {lastUpdated.toLocaleString()}</Typography>
-        {/* Profile Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 4, justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Avatar sx={{ width: 72, height: 72, fontSize: 32, bgcolor: '#f3f3f3', color: '#222', mr: 3, border: '1px solid #ececec' }}>
-              {profileData.fullName.split(' ').map(n => n[0]).join('')}
-            </Avatar>
-            <Box>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>{profileData.fullName}</Typography>
-              <Typography variant="subtitle1" sx={{ color: '#666', fontWeight: 400, mb: 1 }}>{profileData.tagLine}</Typography>
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                <LocationOnIcon sx={{ color: '#bbb', fontSize: 20 }} />
-                <Typography variant="body2" sx={{ color: '#888' }}>{profileData.location}</Typography>
-              </Stack>
-            </Box>
-          </Box>
-          {/* LinkedIn-style action buttons */}
-          <Stack direction="row" spacing={2} alignItems="center">
-            {!isConnected && (
-              <Tooltip title="Connect with this user" arrow>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => { setIsConnected(true); setShowSnackbar(true); }}
-                  sx={{
-                    textTransform: 'none',
-                    fontWeight: 500,
-                    borderRadius: 2,
-                    minWidth: 120,
-                    boxShadow: '0 2px 8px rgba(25, 118, 210, 0.10)',
-                    transition: 'all 0.2s',
-                    '&:hover': { boxShadow: '0 4px 16px rgba(25, 118, 210, 0.18)' }
-                  }}
-                  aria-label="Connect"
-                >
-                  Connect
-                </Button>
-              </Tooltip>
-            )}
-            <Tooltip title="Edit your profile" arrow>
-              <Button 
-                variant="outlined"
-                color="inherit"
-                onClick={() => setOpenEditProfile(true)}
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 500,
-                  borderRadius: 2,
-                  minWidth: 120,
-                  borderColor: '#e0e0e0',
-                  bgcolor: '#fafbfc',
-                  '&:hover': { bgcolor: '#f5f5f5', borderColor: '#bdbdbd' }
-                }}
-                aria-label="Edit profile"
-                startIcon={<EditIcon />}
-              >
-                Edit
-              </Button>
-            </Tooltip>
-          </Stack>
-        </Box>
-
-        {/* Looking For Section */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>Looking For</Typography>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#222', mb: 1 }}>{lookingFor}</Typography>
-          <Typography variant="body1" sx={{ color: '#666' }}>{whyLooking}</Typography>
-        </Box>
-
-        {/* Key Skills Section */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>Key Skills</Typography>
-          <Stack direction="row" spacing={1} flexWrap="wrap">
-            {profileData.skills.length === 0 ? (
-              <Typography variant="body2" sx={{ color: '#bbb' }}>No skills added yet.</Typography>
-            ) : (
-              profileData.skills.map((skill, idx) => (
-                <Tooltip key={skill} title={`Endorsed by ${Math.floor(Math.random()*10+1)} people`} arrow>
-                  <Chip label={skill} sx={{ bgcolor: '#f7f7f8', color: '#222', fontWeight: 500, fontSize: 15, borderRadius: 1, mr: 1, mb: 1 }} />
-                </Tooltip>
-              ))
-            )}
-          </Stack>
-        </Box>
-
-        {/* Contact Section with public/private toggle */}
-        <Box sx={{ mb: 4 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, flex: 1 }}>Contact</Typography>
-            <Tooltip title={contactPublic ? 'Contact info is public' : 'Contact info is private'} arrow>
-              <Switch checked={contactPublic} onChange={() => setContactPublic(v => !v)} color="primary" inputProps={{ 'aria-label': 'Toggle contact public/private' }} />
-            </Tooltip>
-          </Box>
-          {contactPublic && isConnected && (
-            <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap">
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <EmailIcon sx={{ color: '#bbb', fontSize: 20 }} />
-                <Typography variant="body2" sx={{ color: '#888' }}>{profileData.email}</Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <PhoneIcon sx={{ color: '#bbb', fontSize: 20 }} />
-                <Typography variant="body2" sx={{ color: '#888' }}>{profileData.phone}</Typography>
-              </Box>
-            </Stack>
-          )}
-          {!contactPublic && <Typography variant="body2" sx={{ color: '#bbb' }}>Contact info is private</Typography>}
-        </Box>
-
-        {/* About Section */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>About</Typography>
-          <Typography variant="body1" sx={{ color: '#444' }}>{profileData.summary}</Typography>
-        </Box>
-
-        {/* Tabs Section: Experience, Education, Projects */}
-        <Box sx={{ mt: 4 }}>
-          <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} sx={{ borderBottom: '1px solid #ececec', minHeight: 40 }}>
-            <Tab label="Experience" sx={{ fontWeight: 600, fontSize: 16, textTransform: 'none', minWidth: 120 }} />
-            <Tab label="Education" sx={{ fontWeight: 600, fontSize: 16, textTransform: 'none', minWidth: 120 }} />
-            <Tab label="Projects" sx={{ fontWeight: 600, fontSize: 16, textTransform: 'none', minWidth: 120 }} />
-          </Tabs>
-          <Divider sx={{ mb: 3, mt: 0 }} />
-          {activeTab === 0 && (
-            <Box>
-              <Divider sx={{ my: 2 }} />
-              <Box sx={{ mb: 4 }}>
-                <Button 
-                  variant="contained"
-                  color="primary"
-                  onClick={handleExperienceAdd}
-                  aria-label="Add experience"
-                  sx={{ mb: 2, fontWeight: 600, textTransform: 'none' }}
-                >
-                  Add Experience
-                </Button>
-                {(profileData.experiences && profileData.experiences.length > 0) ? (
-                  <Box>
-                    {profileData.experiences.map((exp, idx) => (
-                      <Box key={idx} sx={{ display: 'flex', mb: 3 }}>
-                        <WorkIcon sx={{ color: '#bdbdbd', fontSize: 32, mr: 2, mt: 0.5 }} />
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0 }}>{exp.title}</Typography>
-                          <Typography variant="body2" sx={{ color: '#444', fontWeight: 500 }}>{exp.company}</Typography>
-                          <Typography variant="body2" sx={{ color: '#888', mb: 0.5 }}>{exp.period}</Typography>
-                          <Typography variant="body2" sx={{ color: '#444', mb: 1 }}>{exp.description}</Typography>
-                          <Button size="small" variant="text" color="primary" onClick={() => handleExperienceEdit(idx)} aria-label="Edit experience" sx={{ pl: 0, minWidth: 0 }}>Edit</Button>
-                        </Box>
-                      </Box>
-                    ))}
-                  </Box>
-                ) : (
-                  <Typography variant="body1" sx={{ color: '#aaa', textAlign: 'center', mt: 4 }}>No experience added yet. Click <b>Add</b> to showcase your work!</Typography>
-                )}
-              </Box>
-            </Box>
-          )}
-          {activeTab === 1 && (
-            <Box>
-              <Divider sx={{ my: 2 }} />
-              <Box sx={{ mb: 4 }}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={handleAcademicAdd}
-                  aria-label="Add education"
-                  sx={{ mb: 2, fontWeight: 600, textTransform: 'none' }}
-                >
-                  Add Education
-                </Button>
-                {(profileData.education && profileData.education.length > 0) ? (
-                  <Box>
-                    {profileData.education.map((edu, idx) => (
-                      <Box key={idx} sx={{ display: 'flex', mb: 3 }}>
-                        <SchoolIcon sx={{ color: '#bdbdbd', fontSize: 32, mr: 2, mt: 0.5 }} />
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0 }}>{edu.degree}</Typography>
-                          <Typography variant="body2" sx={{ color: '#444', fontWeight: 500 }}>{edu.school}</Typography>
-                          <Typography variant="body2" sx={{ color: '#888', mb: 0.5 }}>{edu.period}</Typography>
-                          {edu.description && <Typography variant="body2" sx={{ color: '#444', mb: 1 }}>{edu.description}</Typography>}
-                          <Button size="small" variant="text" color="primary" onClick={() => handleAcademicEdit(idx)} aria-label="Edit education" sx={{ pl: 0, minWidth: 0 }}>Edit</Button>
-                        </Box>
-                      </Box>
-                    ))}
-                  </Box>
-                ) : (
-                  <Typography variant="body1" sx={{ color: '#aaa', textAlign: 'center', mt: 4 }}>No education added yet. Click <b>Add</b> to showcase your background!</Typography>
-                )}
-              </Box>
-            </Box>
-          )}
-          {activeTab === 2 && (
-            <Box>
-              <Divider sx={{ my: 2 }} />
-              <Box sx={{ mb: 4 }}>
-                <Button 
-                  variant="contained"
-                  color="primary"
-                  onClick={handleProjectAdd}
-                  aria-label="Add project"
-                  sx={{ mb: 2, fontWeight: 600, textTransform: 'none' }}
-                >
-                  Add Project
-                </Button>
-                {(profileData.projects && profileData.projects.length > 0) ? (
-                  <Box>
-                    {profileData.projects.map((project, idx) => (
-                      <Box key={idx} sx={{ display: 'flex', mb: 3 }}>
-                        <FolderIcon sx={{ color: '#bdbdbd', fontSize: 32, mr: 2, mt: 0.5 }} />
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0 }}>{project.title}</Typography>
-                          {project.tech && project.tech.length > 0 && (
-                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 0.5 }}>
-                              {project.tech.map((tech) => (
-                                <Chip key={tech} label={tech} size="small" sx={{ bgcolor: '#ede7f6', color: '#5e35b1', fontWeight: 500, borderRadius: 1 }} />
-                              ))}
-                            </Box>
-                          )}
-                          <Typography variant="body2" sx={{ color: '#444', mb: 0.5 }}>{project.description}</Typography>
-                          <Box sx={{ display: 'flex', gap: 2, mb: 0.5 }}>
-                            {project.liveDemo && (
-                              <Link href={project.liveDemo} target="_blank" sx={{ color: '#1976d2', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <LaunchIcon fontSize="small" /> Live Demo
-                              </Link>
-                            )}
-                            {project.sourceCode && (
-                              <Link href={project.sourceCode} target="_blank" sx={{ color: '#1976d2', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <CodeIcon fontSize="small" /> Source Code
-                              </Link>
-                            )}
-                          </Box>
-                          <Button size="small" variant="text" color="primary" onClick={() => handleProjectEdit(idx)} aria-label="Edit project" sx={{ pl: 0, minWidth: 0 }}>Edit</Button>
-                        </Box>
-                      </Box>
-                    ))}
-                  </Box>
-                ) : (
-                  <Typography variant="body1" sx={{ color: '#aaa', textAlign: 'center', mt: 4 }}>No projects added yet. Click <b>Add</b> to showcase your work!</Typography>
-                )}
-              </Box>
-            </Box>
-          )}
-        </Box>
-      </Box>
-      <Footer />
-      <Snackbar 
-        open={showSnackbar}
-        autoHideDuration={2000}
-        onClose={() => setShowSnackbar(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        message="Contact info unlocked!"
-      />
-      <ToastContainer position="bottom-right" autoClose={2000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover theme="colored" />
-      {/* Dialogs for editing */}
-      <EditProfileDialog open={openEditProfile} onClose={() => setEditMode(false)} profileData={profileData} onSave={handleProfileSave} />
-      <AcademicForm open={openAcademicForm} onClose={handleAcademicClose} onSave={handleAcademicSave} initialData={editingAcademic !== null ? profileData.education[editingAcademic] : null} />
-      <ExperienceForm open={openExperienceForm} onClose={handleExperienceClose} onSave={handleExperienceSave} initialData={editingExperience !== null ? profileData.experiences[editingExperience] : null} />
-      <ProjectForm open={openProjectForm} onClose={handleProjectClose} onSave={handleProjectSave} initialData={editingProject !== null && profileData.projects ? profileData.projects[editingProject] : null} />
-      {/* Delete confirmation dialog */}
-      <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, type: '', idx: null })}>
-        <DialogTitle>Confirm Delete</DialogTitle>
-        <DialogContent>
-          <Typography>Are you sure you want to delete this {deleteDialog.type} entry?</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialog({ open: false, type: '', idx: null })}>Cancel</Button>
-          <Button onClick={handleDelete} color="error" variant="contained" disabled={loading} startIcon={loading && <CircularProgress size={18} />}>Delete</Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
-  );
-} 
-
-
->>>>>>> 99d1fff66b3988759386b131aeff98cf5b5ed013

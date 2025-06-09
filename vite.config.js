@@ -1,6 +1,5 @@
-<<<<<<< HEAD
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc";
+import react from "@vitejs/plugin-react";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
@@ -21,12 +20,3 @@ export default defineConfig(({ mode }) => ({
     },
   },
 }));
-=======
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-
-// https://vitejs.dev/config/
-export default defineConfig({
-  plugins: [react()]
-})
->>>>>>> 99d1fff66b3988759386b131aeff98cf5b5ed013
